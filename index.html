@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oncology Conference Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-gray-100 font-sans">
+  
+  
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="bg-indigo-700 text-white shadow p-4 flex justify-between items-center full-width relative">
+      <div>
+        <h1 class="text-2xl font-bold">EIOC 2025 Dashboard</h1>
+        <p class="text-sm opacity-80">Interactive summary of registrations, abstracts, and sessions</p>
+      </div>
+      <div class="relative ml-auto">
+        <button id="menuBtn" class="bg-yellow-400 text-white font-semibold px-3 py-1 rounded-lg shadow hover:bg-yellow-500 transition">Manage</button>
+        <div id="menuOptions" class="hidden fixed top-16 right-4 w-48 bg-white shadow-lg rounded-lg z-50">
+          <button id="editBtnOverlay" class="w-full text-left px-4 py-2 text-gray-800 hover:bg-yellow-400 hover:text-white transition">Edit Dashboard</button>
+          <a href="PAG.html" class="block px-4 py-2 text-gray-800 hover:bg-yellow-400 hover:text-white transition">Program at a Glance</a>
+          <a href="tracker.html" class="block px-4 py-2 text-gray-800 hover:bg-yellow-400 hover:text-white transition">Milestone Tracker</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-2 gap-2 text-sm" style="font-size: 0.8rem;">
+      <div class="bg-white rounded-2xl shadow p-2 relative overflow-hidden">
+        <h2 class="text-base font-semibold text-gray-700">Total Registrations</h2>
+        <p class="text-2xl font-bold text-indigo-700" id="totalRegistrations">0</p>
+        <p class="text-xs text-gray-500" id="prevTotalRegistrations">Previous: 0</p>
+        <div class="absolute top-2 right-2 w-16 h-16 opacity-20" style="background-image: url('Images/Icon1.png'); background-size: contain; background-repeat: no-repeat; background-position: center;"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-2 relative overflow-hidden">
+        <h2 class="text-base font-semibold text-gray-700">Abstract Submissions</h2>
+        <p class="text-2xl font-bold text-indigo-700" id="abstractSubmissions">0</p>
+        <p class="text-xs text-gray-500">Oral: 56 | E-Poster: 45</p>
+        <div class="absolute top-2 right-2 w-16 h-16 opacity-20" style="background-image: url('Images/Icon2.png'); background-size: contain; background-repeat: no-repeat; background-position: center;"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-2">
+        <h5 class="text-base font-semibold text-gray-600">Delegates by Category</h5>
+        <canvas id="categoryChart" class="small-chart"></canvas>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-2 relative overflow-hidden">
+        <h2 class="text-base font-semibold text-gray-700">Participating Countries</h2>
+        <p class="text-2xl font-bold text-indigo-700" id="participatingCountries">0</p>
+        <p class="text-xs text-gray-500" id="prevParticipatingCountries">Previous: 0</p>
+        <div class="absolute inset-0 m-auto opacity-20 w-24 h-24" style="background-image: url('Images/Icon3.png'); background-size: contain; background-repeat: no-repeat; background-position: center;"></div>
+      </div>
+    </section>
+
+    <!-- UAE Delegates -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="text-lg font-bold text-gray-700 mb-2">UAE Delegates</h2>
+      <canvas id="uaeChart"></canvas>
+    </section>
+
+    <!-- Sessions Table -->
+    <section class="bg-white rounded-2xl shadow p-4 overflow-auto">
+      <h2 class="text-lg font-bold text-gray-700 mb-2">Sessions</h2>
+      <table class="min-w-full border border-gray-200 text-sm text-center">
+        <thead class="bg-indigo-600 text-white">
+          <tr>
+            <th class="px-3 py-2">Session</th>
+            <th class="px-3 py-2">Target</th>
+            <th class="px-3 py-2">Previous</th>
+            <th class="px-3 py-2">Current</th>
+            <th class="px-3 py-2">Unique</th>
+            <th class="px-3 py-2">Deficit</th>
+          </tr>
+        </thead>
+
+        <tbody id="dashboardSessionsBody" class="text-sm"></tbody>
+      </table>
+    </section>
+
+    <!-- Regional and International Delegates -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="text-lg font-bold text-gray-700 mb-2">Regional and International Delegates</h2>
+      <canvas id="regionalChart"></canvas>
+    </section>
+  </div>
+
+  <!-- Edit Modal (Hidden by default) -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start overflow-auto py-10 hidden z-50">
+    <div class="bg-white rounded-2xl shadow p-6 w-[95%] max-w-7xl">
+      <h2 class="text-lg font-bold text-gray-700 mb-4">Edit Summary</h2>
+
+      <!-- Summary Inputs -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-600 mb-1">Total Registrations:</label>
+          <input type="number" id="editTotal" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block mb-1 font-semibold">Total Registrations (Previous)</label>
+          <input type="number" id="editPrevTotal" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Abstract Submissions:</label>
+          <input type="number" id="editAbstract" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block mb-1 font-semibold">Abstract Submissions (Previous)</label>
+          <input type="number" id="editPrevAbstract" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Participating Countries:</label>
+          <input type="number" id="editCountries" class="w-full border p-2 rounded" />
+        </div>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">Participating Countries (Previous)</label>
+        <input type="number" id="editPrevCountries" class="w-full border p-2 rounded" />
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">Oral</label>
+        <input type="number" id="editOral" class="w-full border p-2 rounded" />
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">E-Poster</label>
+        <input type="number" id="editEPoster" class="w-full border p-2 rounded" />
+      </div>
+
+      <!-- UAE Delegates Inputs -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-600 mb-1">Dxb-Shj:</label>
+          <input type="number" id="editUAE1" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Abu Dhabi-Al Ain:</label>
+          <input type="number" id="editUAE2" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Other Emirates:</label>
+          <input type="number" id="editUAE3" class="w-full border p-2 rounded" />
+        </div>
+      </div>
+
+      <!-- Regional & International Delegates Inputs -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-600 mb-1">Regional:</label>
+          <input type="number" id="editRegional" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">APAC:</label>
+          <input type="number" id="editAPAC" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">International:</label>
+          <input type="number" id="editInternational" class="w-full border p-2 rounded" />
+        </div>
+      </div>
+
+      <!-- Previous UAE Delegates Inputs -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-600 mb-1">Previous Dxb-Shj:</label>
+          <input type="number" id="editPrevUAE1" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Previous Abu Dhabi-Al Ain:</label>
+          <input type="number" id="editPrevUAE2" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Previous Other Emirates:</label>
+          <input type="number" id="editPrevUAE3" class="w-full border p-2 rounded" />
+        </div>
+      </div>
+
+      <!-- Previous Regional & International Delegates Inputs -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-gray-600 mb-1">Previous Regional:</label>
+          <input type="number" id="editPrevRegional" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Previous APAC:</label>
+          <input type="number" id="editPrevAPAC" class="w-full border p-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">Previous International:</label>
+          <input type="number" id="editPrevInternational" class="w-full border p-2 rounded" />
+        </div>
+      </div>
+
+      <!-- Delegates by Category (editable) -->
+      <div class="overflow-x-auto mt-4">
+        <h3 class="text-gray-700 font-semibold mb-2">Delegates by Category</h3>
+        <table class="min-w-full text-sm border" id="editCategoryTable">
+          <thead class="bg-indigo-600 text-white">
+            <tr>
+              <th class="p-1">Category</th>
+              <th class="p-1">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="p-1">Doctors</td>
+              <td class="p-1"><input type="number" class="w-full border p-1 rounded category-input" value="0" /></td>
+            </tr>
+            <tr>
+              <td class="p-1">Nurses</td>
+              <td class="p-1"><input type="number" class="w-full border p-1 rounded category-input" value="0" /></td>
+            </tr>
+            <tr>
+              <td class="p-1">Allied HCP</td>
+              <td class="p-1"><input type="number" class="w-full border p-1 rounded category-input" value="0" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Editable Sessions Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm border" id="editSessionsTable">
+          <thead class="bg-indigo-600 text-white">
+            <tr>
+              <th class="p-1">Session</th>
+              <th class="p-1">Target</th>
+              <th class="p-1">Previous</th>
+              <th class="p-1">Current</th>
+              <th class="p-1">Unique</th>
+              <th class="p-1">Oncologist</th>
+              <th class="p-1">Deficit</th>
+            </tr>
+          </thead>
+          <tbody id="editSessionsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4">
+        <button id="cancelEdit" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+        <button id="saveEdit" class="px-3 py-1 bg-indigo-700 text-white rounded hover:bg-indigo-800" enabled>Save</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- Supabase and app scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    window.SUPABASE_URL = "https://tvxzvawzqlxkdlctgges.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2eHp2YXd6cWx4a2RsY3RnZ2VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NDMwNjcsImV4cCI6MjA3NDAxOTA2N30.0pitJMrKxP76za6ml7PyrIRJ5oKvaf-nEtjCAvJMTwU";
+    window.EDIT_PASSCODE = "EIOC2025"; /* set your passcode here */
+  </script>
+
+  <!-- Passcode Modal (must be BEFORE main.js so JS can find it) -->
+  <div id="passcodeModal" class="fixed inset-0 bg-black/50 hidden z-50">
+    <div class="bg-white rounded-2xl shadow p-6 w-[95%] max-w-sm mx-auto mt-28">
+      <h3 class="text-lg font-bold text-gray-800 mb-3">Enter passcode to edit</h3>
+      <input id="editPasscodeInput" type="password" class="w-full border rounded p-2 mb-3" placeholder="••••••••" />
+      <p id="editPasscodeError" class="text-sm text-red-600 mb-3 hidden">Incorrect passcode. Try again.</p>
+      <div class="flex justify-end gap-2">
+        <button id="passcodeCancel" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+        <button id="passcodeUnlock" class="px-3 py-1 bg-indigo-700 text-white rounded hover:bg-indigo-800">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Now load your app -->
+  <script src="main.js"></script>
+</body>
+</html>
