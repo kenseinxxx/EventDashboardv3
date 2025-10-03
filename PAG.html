@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EIOC 2025 — Program at a Glance</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    :root{
+      --bg:#f7f8fb; --card:#ffffff; --text:#12141a; --muted:#5b6270; --ring:#e6e8ef;
+      --good:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+      --c-oncologist:#1f77b4; --c-physicians:#ff7f0e; --c-onco-nurses:#2ca02c; --c-nurses:#d62728; --c-allied:#9467bd; --c-surgeon:#bd1184; --c-academia:#055120;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text);padding:24px}
+    header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin:0 0 20px}
+    h1{font-size:clamp(20px,3vw,28px);margin:0}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .button{appearance:none;border:1px solid var(--ring);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600;box-shadow:0 1px 0 rgba(10,10,10,.02)}
+    .button.primary{background:#111827;color:#fff;border-color:#111827}
+    .button.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+    .denom-select{padding:10px 12px;border-radius:10px;border:1px solid var(--ring);background:#fff;font-weight:600}
+
+    .row{display:flex;gap:20px;justify-content:space-between;margin-bottom:20px;flex-wrap:nowrap}
+    .row.three .session{width:32%}
+    .row.two .session{width:49%}
+    .row.four .session{width:24%}
+
+    .session{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:18px 16px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .session h3{margin:0 0 6px;font-size:18px;color:#0f766e}
+    .hall-name{font-size:13px;color:var(--muted);margin:0 0 10px;text-align:left}
+    .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:#334155;margin-bottom:10px}
+    .meta b{color:#0f172a}
+
+    .usage{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+    .usage-bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;flex:1;border:1px solid #d1d5db}
+    .usage-fill{height:100%;width:0%;background:var(--good);transition:width .4s ease, background-color .2s ease}
+    .usage-text{font-size:12px;color:#334155;min-width:110px;text-align:right}
+
+    .cats{display:block}
+    .cat-row{position:relative;margin-bottom:10px}
+    .del-cat{
+      position:absolute;right:-6px;top:-8px;display:none;width:22px;height:22px;border-radius:50%;
+      border:1px solid var(--ring);background:#fff;cursor:pointer;font-weight:700;line-height:20px
+    }
+
+    .category-label{font-size:13px;margin:8px 0 6px;color:#111827}
+    .bar-container{width:100%;background:#eef2f7;border:1px solid #dde4ee;border-radius:8px;overflow:hidden}
+    .bar{height:22px;display:flex;align-items:center;justify-content:flex-end;color:#fff;font-weight:700;padding:0 8px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35);transition:width .35s ease}
+    .bar .bar-count{outline:none}
+    .bar.oncologist{background:var(--c-oncologist)}
+    .bar.physicians{background:var(--c-physicians)}
+    .bar.onco-nurses{background:var(--c-onco-nurses)}
+    .bar.nurses{background:var(--c-nurses)}
+    .bar.allied{background:var(--c-allied)}
+    .bar.surgeon{background:var(--c-surgeon)}
+    .bar.academia{background:var(--c-academia)}
+
+    .legend{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 10px}
+    .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#334155;border:1px solid var(--ring);border-radius:999px;padding:6px 10px;background:#fff}
+    .dot{width:10px;height:10px;border-radius:999px}
+    .dot.oncologist{background:var(--c-oncologist)}
+    .dot.physicians{background:var(--c-physicians)}
+    .dot.onco-nurses{background:var(--c-onco-nurses)}
+    .dot.nurses{background:var(--c-nurses)}
+    .dot.allied{background:var(--c-allied)}
+    .dot.surgeon{background:var(--c-surgeon)}
+    .dot.academia{background:var(--c-academia)}
+
+    .add-box{display:none;gap:8px;margin-top:8px}
+    .add-box input{border:1px solid var(--ring);border-radius:8px;padding:8px 10px}
+    .add-box .name{flex:1;min-width:0}
+    .add-box .count{width:110px}
+
+    .editing .bar, .editing .cap-val, .editing .total-val, .editing .unique-val{outline:1px dashed rgba(99,102,241,.35); border-radius:4px}
+    .editing .del-cat{display:inline-block}
+    .footer-note{margin-top:14px;font-size:12px;color:#64748b}
+    .back{margin-bottom:16px}
+  </style>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // 🔧 Replace these with your real values
+    window.SUPABASE_URL = "https://tvxzvawzqlxkdlctgges.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2eHp2YXd6cWx4a2RsY3RnZ2VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NDMwNjcsImV4cCI6MjA3NDAxOTA2N30.0pitJMrKxP76za6ml7PyrIRJ5oKvaf-nEtjCAvJMTwU";
+    // window.PAG_TABLE = "PAGDATA"; // optional; code tries PAGDATA then pagdata
+  </script>
+</head>
+<body>
+  <button class="button back" onclick="location.href='index.html'">← Back</button>
+
+  <header>
+    <h1>EIOC 2025 · Program at a Glance</h1>
+    <div class="controls">
+      <label>Relative to:
+        <select id="denominatorSelect" class="denom-select">
+          <option value="total" selected>Total registrations</option>
+          <option value="unique">Unique</option>
+        </select>
+      </label>
+      <button id="editBtn" class="button">Edit</button>
+      <button id="saveBtn" class="button primary" style="display:none">Save</button>
+    </div>
+  </header>
+
+  <h2 style="margin:6px 0 12px;font-size:16px;color:#334155">Parallel Sessions — Day 1</h2>
+
+  <section id="day1">
+    <div class="row three">
+      <article class="session" data-session-id="gi_cancer">
+        <h3>GI Cancer</h3>
+        <div class="hall-name"><strong>Hall: AL RAS 2</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="legend">
+          <span class="chip"><span class="dot oncologist"></span> Oncologist</span>
+          <span class="chip"><span class="dot physicians"></span> Physicians</span>
+          <span class="chip"><span class="dot nurses"></span> Nurses</span>
+          <span class="chip"><span class="dot onco-nurses"></span> Onco Nurses</span>
+          <span class="chip"><span class="dot surgeon"></span> Surgeon</span>
+          <span class="chip"><span class="dot allied"></span> Allied</span>
+          <span class="chip"><span class="dot academia"></span> Academia</span>
+        </div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name (e.g., radiation_oncologist)"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="head_neck">
+        <h3>Head &amp; Neck Session</h3>
+        <div class="hall-name"><strong>Hall: AL RAS 3</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="legend">
+          <span class="chip"><span class="dot oncologist"></span> Oncologist</span>
+          <span class="chip"><span class="dot physicians"></span> Physicians</span>
+          <span class="chip"><span class="dot nurses"></span> Nurses</span>
+          <span class="chip"><span class="dot onco-nurses"></span> Onco Nurses</span>
+          <span class="chip"><span class="dot surgeon"></span> Surgeon</span>
+          <span class="chip"><span class="dot allied"></span> Allied</span>
+          <span class="chip"><span class="dot academia"></span> Academia</span>
+        </div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="oncology_nutrition">
+        <h3>Oncology Nutrition</h3>
+        <div class="hall-name"><strong>Hall: AMWAJ</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="legend">
+          <span class="chip"><span class="dot oncologist"></span> Oncologist</span>
+          <span class="chip"><span class="dot physicians"></span> Physicians</span>
+          <span class="chip"><span class="dot nurses"></span> Nurses</span>
+          <span class="chip"><span class="dot onco-nurses"></span> Onco Nurses</span>
+          <span class="chip"><span class="dot surgeon"></span> Surgeon</span>
+          <span class="chip"><span class="dot allied"></span> Allied</span>
+          <span class="chip"><span class="dot academia"></span> Academia</span>
+        </div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="row two">
+      <article class="session" data-session-id="immuno_oncology">
+        <h3>Immuno Oncology</h3>
+        <div class="hall-name"><strong>Hall: AL RAS 2</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="legend">
+          <span class="chip"><span class="dot oncologist"></span> Oncologist</span>
+          <span class="chip"><span class="dot physicians"></span> Physicians</span>
+          <span class="chip"><span class="dot nurses"></span> Nurses</span>
+        </div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="breast_imaging_surgical">
+        <h3>Breast Imaging / Breast Surgical Session</h3>
+        <div class="hall-name"><strong>Hall: AMWAJ</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="legend">
+          <span class="chip"><span class="dot oncologist"></span> Oncologist</span>
+          <span class="chip"><span class="dot physicians"></span> Physicians</span>
+          <span class="chip"><span class="dot nurses"></span> Nurses</span>
+          <span class="chip"><span class="dot onco-nurses"></span> Onco Nurses</span>
+          <span class="chip"><span class="dot surgeon"></span> Surgeon</span>
+          <span class="chip"><span class="dot allied"></span> Allied</span>
+          <span class="chip"><span class="dot academia"></span> Academia</span>
+        </div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <h2 style="margin:22px 0 12px;font-size:16px;color:#334155">Parallel Sessions — Day 2</h2>
+
+  <section id="day2">
+    <div class="row four">
+      <article class="session" data-session-id="lung_cancer">
+        <h3>Lung Cancer</h3>
+        <div class="hall-name"><strong>Hall: AL RAS 2</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="breast_cancer">
+        <h3>Breast Cancer</h3>
+        <div class="hall-name"><strong>Hall: AL RAS 3</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="uro_oncology">
+        <h3>Uro Oncology</h3>
+        <div class="hall-name"><strong>Hall: AL AMWAJ</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="young_leaders">
+        <h3>Young Leaders in Oncology</h3>
+        <div class="hall-name"><strong>Hall: AL RIMAL</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="row two">
+      <article class="session" data-session-id="oncology_nursing">
+        <h3>Oncology Nursing</h3>
+        <div class="hall-name"><strong>Hall: AL AMWAJ</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="session" data-session-id="palliative_care">
+        <h3>Palliative Care</h3>
+        <div class="hall-name"><strong>Hall: AL RIMAL</strong></div>
+        <div class="meta">
+          <span>Capacity: <b class="cap-val">0</b></span>
+          <span>· Total Registrations: <b class="total-val">0</b></span>
+          <span>· Unique: <b class="unique-val">0</b></span>
+        </div>
+        <div class="usage"><div class="usage-bar"><div class="usage-fill"></div></div><div class="usage-text"></div></div>
+        <div class="cats"></div>
+        <div class="add-wrap">
+          <button class="button sm add-btn">+ Add job profile</button>
+          <div class="add-box">
+            <input class="name" type="text" placeholder="Job profile name"/>
+            <input class="count" type="number" min="0" step="1" placeholder="Count"/>
+            <button class="button sm add-commit">Add</button>
+            <button class="button sm add-cancel">Cancel</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <p class="footer-note">
+    Tip: switch the dropdown to view bars as a percentage of Total registrations vs. Unique attendees.<br/>
+    Edit counts inline, delete with the × button, or <b>+ Add job profile</b> to create new categories. Save writes back to Supabase.
+  </p>
+
+  <script>
+(() => {
+  // --- Supabase client ---
+  const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  // Try common table forms (ALL CAPS vs lowercase)
+  const CANDIDATE_TABLES = [
+    (window.PAG_TABLE || "PAGDATA"),
+    (window.PAG_TABLE || "PAGDATA").toLowerCase()
+  ];
+  let TABLE = CANDIDATE_TABLES[0];
+
+  // --- DOM refs ---
+  const denomSelect = document.getElementById("denominatorSelect");
+  const editBtn = document.getElementById("editBtn");
+  const saveBtn = document.getElementById("saveBtn");
+
+  // Cache
+  let sessionsMap = {}; // { [sessionId]: { capacity, total, unique, categories: { [cat]: count } } }
+  let editing = false;
+
+  // -------- Load & Render ----------
+  async function loadData() {
+    let lastError = null;
+
+    for (const t of CANDIDATE_TABLES) {
+      const { data, error, status } = await supabase.from(t).select("*");
+      if (!error) {
+        TABLE = t;
+        sessionsMap = rowsToSessions(data);
+        wireAddProfileBoxes(); // set up add-profile UI after DOM has data
+        renderAll();
+        if (t !== CANDIDATE_TABLES[0]) console.info(`[PAG] Using fallback table "${t}"`);
+        return;
+      }
+      lastError = { error, status, t };
+      if ((error && (error.code === "42P01" || /relation .* does not exist/i.test(error.message))) || status === 404) {
+        continue;
+      } else {
+        break;
+      }
+    }
+
+    console.error("Supabase select error:", lastError);
+    alert(
+      `Failed to load from Supabase.\n` +
+      `Tried: ${lastError?.t}\nStatus: ${lastError?.status ?? "?"}\n` +
+      `Error: ${lastError?.error?.code || ""} ${lastError?.error?.message || ""}\n\n` +
+      `Check URL/key/table name or schema.`
+    );
+  }
+
+  function rowsToSessions(rows) {
+    const map = {};
+    for (const r of rows) {
+      const session = r.session;
+      if (!map[session]) {
+        map[session] = { capacity: 0, total: 0, unique: 0, categories: {} };
+      }
+      map[session].capacity = Number(r.capacity) || map[session].capacity;
+      map[session].total    = Number(r.total)    || map[session].total;
+      map[session].unique   = Number(r.unique)   || map[session].unique;
+      map[session].categories[String(r.category)] = Number(r.count) || 0;
+    }
+    return map;
+  }
+
+  function renderAll() {
+    const articles = document.querySelectorAll(".session[data-session-id]");
+    const denomKey = denomSelect.value;
+
+    articles.forEach(article => {
+      const id = article.dataset.sessionId;
+      const data = sessionsMap[id];
+      const capEl = article.querySelector(".cap-val");
+      const totalEl = article.querySelector(".total-val");
+      const uniqueEl = article.querySelector(".unique-val");
+      const usageFill = article.querySelector(".usage-fill");
+      const usageText = article.querySelector(".usage-text");
+      const catsEl = article.querySelector(".cats");
+
+      if (!data) {
+        capEl.textContent = "0"; totalEl.textContent = "0"; uniqueEl.textContent = "0";
+        usageFill.style.width = "0%"; usageFill.style.backgroundColor = "var(--good)";
+        usageText.textContent = "0% of capacity"; catsEl.innerHTML = "";
+        setEditingUI(article, editing);
+        return;
+      }
+
+      capEl.textContent = data.capacity;
+      totalEl.textContent = data.total;
+      uniqueEl.textContent = data.unique;
+
+      const denomVal = Math.max(0, Number(data[denomKey]) || 0);
+      const cap = Math.max(0, Number(data.capacity) || 0);
+      const pct = cap === 0 ? 0 : Math.min(100, Math.round((denomVal / cap) * 100));
+      usageFill.style.width = pct + "%";
+      usageFill.style.backgroundColor = pct >= 95 ? "var(--bad)" : pct >= 80 ? "var(--warn)" : "var(--good)";
+      usageText.textContent = `${pct}% of capacity`;
+
+      catsEl.innerHTML = "";
+      const entries = Object.entries(data.categories).sort((a,b) => b[1]-a[1]);
+      for (const [cat, count] of entries) {
+        catsEl.appendChild(makeCatRow(id, cat, count, denomKey));
+      }
+
+      setEditingUI(article, editing);
+    });
+  }
+
+  function makeCatRow(sessionId, catName, count, denomKey) {
+    const row = document.createElement("div");
+    row.className = "cat-row";
+    row.dataset.sessionId = sessionId;
+    row.dataset.category = catName;
+
+    const label = document.createElement("div");
+    label.className = "category-label";
+    label.textContent = prettyCategoryLabel(catName);
+
+    const del = document.createElement("button");
+    del.className = "del-cat";
+    del.title = "Delete category";
+    del.textContent = "×";
+    del.addEventListener("click", () => {
+      if (!editing) return;
+      delete sessionsMap[sessionId].categories[catName];
+      renderAll();
+    });
+
+    const container = document.createElement("div");
+    container.className = "bar-container";
+
+    const bar = document.createElement("div");
+    bar.className = "bar " + classForCategory(catName);
+
+    const denom = Math.max(1, Number(sessionsMap[sessionId][denomKey]) || 1);
+    const widthPct = Math.min(100, Math.round((Number(count) / denom) * 100));
+    bar.style.width = widthPct + "%";
+
+    const cnt = document.createElement("span");
+    cnt.className = "bar-count";
+    cnt.textContent = count;
+
+    bar.appendChild(cnt);
+    container.appendChild(bar);
+
+    row.appendChild(label);
+    row.appendChild(del);
+    row.appendChild(container);
+    return row;
+  }
+
+  function prettyCategoryLabel(k) {
+    return k.replace(/_/g, " ").replace(/\b\w/g, m => m.toUpperCase());
+  }
+
+  function slugifyCategory(input) {
+    // Keep simple + consistent keys for DB (lowercase + underscores)
+    return String(input || "")
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^\w_]/g, "")
+      .toLowerCase();
+  }
+
+  function classForCategory(k) {
+    const key = k.toLowerCase();
+    if (key.includes("oncology") || key.includes("oncologist")) return "oncologist";
+    if (key.includes("physician")) return "physicians";
+    if (key.includes("onco") && key.includes("nurse")) return "onco-nurses";
+    if (key.includes("nurse")) return "nurses";
+    if (key.includes("surgeon") || key.includes("surgical")) return "surgeon";
+    if (key.includes("academia") || key.includes("academic")) return "academia";
+    return "allied";
+  }
+
+  function setEditingUI(root, isEditing) {
+    document.body.classList.toggle("editing", isEditing);
+
+    const counts = root.querySelectorAll(".bar-count");
+    counts.forEach(el => {
+      el.contentEditable = isEditing ? "true" : "false";
+      el.spellcheck = false;
+      el.oninput = () => {
+        const catRow = el.closest(".cat-row");
+        const sessionId = catRow.dataset.sessionId;
+        const cat = catRow.dataset.category;
+        const newVal = Number(el.textContent.replace(/[^\d.-]/g, "")) || 0;
+        sessionsMap[sessionId].categories[cat] = newVal;
+        const denomKey = denomSelect.value;
+        const denom = Math.max(1, Number(sessionsMap[sessionId][denomKey]) || 1);
+        const pct = Math.min(100, Math.round((newVal / denom) * 100));
+        catRow.querySelector(".bar").style.width = pct + "%";
+      };
+    });
+
+    const cap = root.querySelector(".cap-val");
+    const tot = root.querySelector(".total-val");
+    const uni = root.querySelector(".unique-val");
+    [cap, tot, uni].forEach(el => {
+      el.contentEditable = isEditing ? "true" : "false";
+      el.spellcheck = false;
+      el.oninput = () => {
+        const sessionId = root.dataset.sessionId;
+        const v = Number(el.textContent.replace(/[^\d.-]/g, "")) || 0;
+        if (el.classList.contains("cap-val")) sessionsMap[sessionId].capacity = v;
+        if (el.classList.contains("total-val")) sessionsMap[sessionId].total = v;
+        if (el.classList.contains("unique-val")) sessionsMap[sessionId].unique = v;
+        renderAll();
+      };
+    });
+  }
+
+  // ---- Add Job Profile UI ----
+  function wireAddProfileBoxes() {
+    document.querySelectorAll(".session").forEach(card => {
+      const sessionId = card.dataset.sessionId;
+      const addBtn = card.querySelector(".add-btn");
+      const box = card.querySelector(".add-box");
+      const nameInput = box.querySelector(".name");
+      const countInput = box.querySelector(".count");
+      const commit = box.querySelector(".add-commit");
+      const cancel = box.querySelector(".add-cancel");
+
+      addBtn.onclick = () => {
+        if (!editing) {
+          alert("Click Edit first to add job profiles.");
+          return;
+        }
+        box.style.display = "flex";
+        nameInput.focus();
+      };
+
+      cancel.onclick = () => {
+        box.style.display = "none";
+        nameInput.value = "";
+        countInput.value = "";
+      };
+
+      commit.onclick = () => {
+        if (!editing) return;
+        const rawName = nameInput.value;
+        const cleanKey = slugifyCategory(rawName);
+        const cnt = Math.max(0, parseInt(countInput.value, 10) || 0);
+
+        if (!cleanKey) {
+          alert("Please enter a job profile name.");
+          return;
+        }
+
+        // Ensure session exists in map
+        if (!sessionsMap[sessionId]) {
+          sessionsMap[sessionId] = { capacity: 0, total: 0, unique: 0, categories: {} };
+        }
+
+        // Merge if already exists
+        const current = sessionsMap[sessionId].categories[cleanKey] || 0;
+        sessionsMap[sessionId].categories[cleanKey] = current + cnt;
+
+        // Reset UI + re-render
+        box.style.display = "none";
+        nameInput.value = "";
+        countInput.value = "";
+        renderAll();
+      };
+    });
+  }
+
+  function collectRows() {
+    const rows = [];
+    for (const [session, v] of Object.entries(sessionsMap)) {
+      const { capacity, total, unique, categories } = v;
+      for (const [category, count] of Object.entries(categories)) {
+        rows.push({ session, capacity, total, unique, category, count });
+      }
+    }
+    return rows;
+  }
+
+  async function saveAll() {
+    const payload = collectRows();
+
+    // Try UPSERT first
+    let { error } = await supabase.from(TABLE).upsert(payload, { onConflict: "session,category" });
+
+    // Silent fallback: replace-all (since your RLS is off)
+    if (error && /(no unique|exclusion constraint matching|ON CONFLICT specification)/i.test(error.message || "")) {
+      const del = await supabase.from(TABLE).delete().neq("session", "__never__");
+      if (del.error) { console.error(del.error); alert("Delete failed: " + del.error.message); return; }
+      const ins = await supabase.from(TABLE).insert(payload);
+      if (ins.error) { console.error(ins.error); alert("Insert failed: " + ins.error.message); return; }
+    } else if (error) {
+      console.error(error);
+      alert("Save failed: " + error.message);
+      return;
+    }
+
+    alert("Saved!");
+    editing = false;
+    editBtn.style.display = "";
+    saveBtn.style.display = "none";
+    await loadData();
+  }
+
+  denomSelect.addEventListener("change", renderAll);
+
+  editBtn.addEventListener("click", () => {
+    editing = true;
+    editBtn.style.display = "none";
+    saveBtn.style.display = "";
+    renderAll();
+  });
+
+  saveBtn.addEventListener("click", saveAll);
+
+  // Init
+  loadData();
+})();
+  </script>
+  <script>
+  // 🔒 Change this to your desired password
+  const EDIT_PASSWORD = "EIOC2025";
+
+  // Add a capturing listener so we can block the original Edit handler if password is wrong
+  (function () {
+    const editBtn = document.getElementById("editBtn");
+    if (!editBtn) return;
+
+    editBtn.addEventListener(
+      "click",
+      function (e) {
+        // Show prompt when Edit is clicked
+        const input = prompt("Enter password to edit:");
+        if (input !== EDIT_PASSWORD) {
+          // Block the original Edit click handler in PAG.js
+          e.stopImmediatePropagation();
+          e.stopPropagation();
+          e.preventDefault();
+          if (input !== null) alert("Incorrect password.");
+        }
+        // If correct, do nothing here: let the original PAG.js Edit handler run normally
+      },
+      true // ← capture phase (runs before the existing bubble listener in PAG.js)
+    );
+  })();
+</script>
+
+</body>
+</html>
