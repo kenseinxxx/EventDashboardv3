@@ -746,6 +746,20 @@
     );
   })();
 </script>
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const menuOptions = document.getElementById("menuOptions");
 
+  menuBtn.addEventListener("click", () => {
+    menuOptions.classList.toggle("hidden");
+  });
+
+  // Optional: close menu if clicking outside
+  document.addEventListener("click", (e) => {
+    if (!menuBtn.contains(e.target) && !menuOptions.contains(e.target)) {
+      menuOptions.classList.add("hidden");
+    }
+  });
+</script>
 </body>
 </html>
