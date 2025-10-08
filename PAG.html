@@ -47,7 +47,13 @@
 
     .category-label{font-size:13px;margin:8px 0 6px;color:#111827}
     .bar-container{width:100%;background:#eef2f7;border:1px solid #dde4ee;border-radius:8px;overflow:hidden}
-    .bar{height:22px;display:flex;align-items:center;justify-content:flex-end;color:#fff;font-weight:700;padding:0 8px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35);transition:width .35s ease}
+
+    /* ⬇️ Only change: ensure bar is wide enough so numbers inside are visible */
+    .bar{
+      height:22px;display:flex;align-items:center;justify-content:flex-end;color:#fff;font-weight:700;
+      padding:0 8px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35);transition:width .35s ease;
+      min-width:36px; /* keep digits like “10” from clipping */
+    }
     .bar .bar-count{outline:none}
     .bar.oncologist{background:var(--c-oncologist)}
     .bar.physicians{background:var(--c-physicians)}
@@ -690,7 +696,7 @@
       const del = await supabase.from(TABLE).delete().neq("session", "__never__");
       if (del.error) { console.error(del.error); alert("Delete failed: " + del.error.message); return; }
       const ins = await supabase.from(TABLE).insert(payload);
-      if (ins.error) { console.error(ins.error); alert("Insert failed: " + ins.error.message); return; }
+      if (ins.error) { console.error(ins.error); alert("Insert failed: " + del.error.message); return; }
     } else if (error) {
       console.error(error);
       alert("Save failed: " + error.message);
